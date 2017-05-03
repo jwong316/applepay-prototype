@@ -67,18 +67,20 @@ public class Main {
       Security.addProvider(new BouncyCastleProvider());
     }
 
-    final String paymentTokenFilename = args[0];
-    final String merchantPkcFilename = args[1];
-    final String pkcs12Filename = args[2];
+    final String paymentTokenFilename = args[0]; // Payload
+    final String merchantPkcFilename = args[1]; // Payment processing cert
+    final String pkcs12Filename = args[2]; // Private key
 
     // read json payment token
-    Map paymentToken = new Gson().fromJson(new FileReader(paymentTokenFilename), Map.class);
+    Map payloadMap = new Gson().fromJson(new FileReader(paymentTokenFilename), Map.class);
+    Map token = (Map) payloadMap.get("token");
+    Map paymentData = (Map) token.get("paymentData");
 
     // data is the ciphertext
-    byte[] data = Base64.decode((String) paymentToken.get("data"));
+    byte[] data = Base64.decode((String) paymentData.get("data"));
 
     // read the ephemeral public key. it's a PEM file without header/footer -- add it back to make our lives easy
-    Map header = (Map) paymentToken.get("header");
+    Map header = (Map) paymentData.get("header");
     String ephemeralPubKeyStr = "-----BEGIN PUBLIC KEY-----\n" + header.get("ephemeralPublicKey") + "\n-----END PUBLIC KEY-----";
     PEMReader pemReaderPublic = new PEMReader(new StringReader(ephemeralPubKeyStr));
     ECPublicKey ephemeralPublicKey = (ECPublicKey) pemReaderPublic.readObject();
